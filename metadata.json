@@ -1,0 +1,6 @@
+{
+  "name": "4YOU TON Queue Game",
+  "description": "Premium dynamic queue-based Telegram Game with TON queue logic, Treasury Wallet, Project Fee mechanics, and $LUCKYS utility booster ecosystem.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
