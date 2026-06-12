@@ -23,17 +23,73 @@ import MyBalanceTab from './components/MyBalanceTab';
 import QueueTab from './components/QueueTab';
 import WithdrawTab from './components/WithdrawTab';
 import AdminTab from './components/AdminTab';
+import { useTonConnectUI, useTonWallet, useTonAddress } from '@tonconnect/ui-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'HOME' | 'DEPOSIT' | 'BALANCE' | 'QUEUE' | 'WITHDRAW' | 'ADMIN'>('HOME');
 
-  // Simulated User Wallet (TON Connect Integration simulation)
+  const PRODUCTION_FRONTEND = true; // Set to true to bypass client mock/simulation values
+
+  // Simulated User Wallet (TON Connect Integration simulation fallback)
   const [userWallet, setUserWallet] = useState({
     address: 'UQBt8f3G9aK8cRe7Vw2bNpXs9qZ4y3m5dL1t6u7v8w9xY',
-    ton: 60.0, // starts with 60 TON so the sandbox user can make multiple deposits easily
-    luckys: 150, // bonus placeholder coins
-    connected: true // connected by default for a stellar Instant trial preview
+    ton: 60.0, 
+    luckys: 150, 
+    connected: false, // starts disconnected in full compliance 
+    telegramId: '8618331744'
   });
+
+  // TON Connect UI React connections
+  const [tonConnectUI] = useTonConnectUI();
+  const wallet = useTonWallet();
+  const rawFriendlyAddress = useTonAddress();
+  const [realBalance, setRealBalance] = useState<number>(0);
+  const [telegramUser, setTelegramUser] = useState({
+    username: 'My_Ton_Wallet',
+    id: '8618331744'
+  });
+
+  // Load real active Telegram configuration
+  useEffect(() => {
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      setTelegramUser({
+        username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'My_Ton_Wallet',
+        id: String(tg.initDataUnsafe.user.id)
+      });
+    }
+  }, []);
+
+  // Fetch real on-chain balance when connected friendly address switches
+  useEffect(() => {
+    if (PRODUCTION_FRONTEND && rawFriendlyAddress) {
+      const loadBalance = async () => {
+        try {
+          const res = await fetch(`/api/wallet/balance?address=${encodeURIComponent(rawFriendlyAddress)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+              setRealBalance(data.balance);
+            }
+          }
+        } catch (err) {
+          console.error('[On-Chain Balance fetch error]:', err);
+        }
+      };
+      loadBalance();
+      const balInterval = setInterval(loadBalance, 10000);
+      return () => clearInterval(balInterval);
+    }
+  }, [rawFriendlyAddress, PRODUCTION_FRONTEND]);
+
+  // Derived Active User Wallet mapped to actual TON Connect session metadata
+  const activeUserWallet = PRODUCTION_FRONTEND ? {
+    address: rawFriendlyAddress || '',
+    ton: realBalance,
+    luckys: 0,
+    connected: !!wallet,
+    telegramId: telegramUser.id
+  } : userWallet;
 
   // State parameter settings (Section 8 database equivalence)
   const [treasuryWalletAddress, setTreasuryWalletAddress] = useState('UQADu7pNPl90A0FKR-macOmwAE7UFdihWwMEtAxm8VPpJuCl');
@@ -129,7 +185,14 @@ export default function App() {
   }, []);
 
   // Getter for retrieving active user record inside queue
-  const userParticipant = participants.find(p => p.username === 'My_Ton_Wallet');
+  const userParticipant = participants.find(p => {
+    if (!p) return false;
+    const pUsername = p.username.startsWith('@') ? p.username : `@${p.username}`;
+    const tUsername = telegramUser.username.startsWith('@') ? telegramUser.username : `@${telegramUser.username}`;
+    const matchUser = pUsername.toLowerCase() === tUsername.toLowerCase() || p.username.toLowerCase() === 'my_ton_wallet';
+    const matchWallet = activeUserWallet.address && p.walletAddress && (p.walletAddress.toLowerCase() === activeUserWallet.address.toLowerCase());
+    return matchUser || matchWallet;
+  });
 
   // Trigger deposit logic for user or simulation
   const addParticipantDeposit = (username: string, walletAddress: string, depositAmount: number, isCurrentUser?: boolean) => {
@@ -234,7 +297,8 @@ export default function App() {
 
   // User trigger deposit helper
   const handleUserConfirmDeposit = (amount: number) => {
-    addParticipantDeposit('My_Ton_Wallet', userWallet.address, amount, true);
+    const userAlias = telegramUser.username || 'My_Ton_Wallet';
+    addParticipantDeposit(userAlias, activeUserWallet.address, amount, true);
   };
 
   // User trigger withdrawal logic
@@ -375,6 +439,40 @@ export default function App() {
     return () => clearInterval(timer);
   }, [autoSimulate, systemStatus, simulationSpeed, participants.length]);
 
+  // Helper to handle admin Rotate ID triggers beautifully in production mode
+  const handleSetUserWalletWrapper = (action: any) => {
+    if (PRODUCTION_FRONTEND) {
+      if (typeof action === 'function') {
+        const next = action(activeUserWallet);
+        if (next.telegramId) {
+          setTelegramUser(prev => ({ ...prev, id: next.telegramId || '8618331744' }));
+        }
+      } else {
+        if (action.telegramId) {
+          setTelegramUser(prev => ({ ...prev, id: action.telegramId || '8618331744' }));
+        }
+      }
+    } else {
+      setUserWallet(action);
+    }
+  };
+
+  const handleConnectWalletClick = () => {
+    if (PRODUCTION_FRONTEND) {
+      tonConnectUI.openModal();
+    } else {
+      setUserWallet(prev => ({ ...prev, connected: true }));
+    }
+  };
+
+  const handleDisconnectWalletClick = () => {
+    if (PRODUCTION_FRONTEND) {
+      tonConnectUI.disconnect();
+    } else {
+      setUserWallet(prev => ({ ...prev, connected: false }));
+    }
+  };
+
   return (
     <div id="app-workspace" className="min-h-screen bg-[#04060a] text-slate-200 flex flex-col font-sans relative overflow-x-hidden select-none pb-28">
       
@@ -427,7 +525,7 @@ export default function App() {
               <span className="text-[9px] text-slate-500 uppercase font-black tracking-wider leading-none">Wallet</span>
             </div>
             <strong className="text-[12.5px] font-black text-white font-mono">
-              {userWallet.connected ? `${userWallet.ton.toFixed(1)} TON` : '—'}
+              {activeUserWallet.connected ? `${activeUserWallet.ton.toFixed(2)} TON` : '—'}
             </strong>
           </div>
 
@@ -447,9 +545,10 @@ export default function App() {
           {activeTab === 'HOME' && (
             <HomeTab
               systemStatus={systemStatus}
-              userWallet={userWallet}
-              onConnectWallet={() => setUserWallet(prev => ({ ...prev, connected: true }))}
-              onDisconnectWallet={() => setUserWallet(prev => ({ ...prev, connected: false }))}
+              userWallet={activeUserWallet}
+              setUserWallet={handleSetUserWalletWrapper}
+              onConnectWallet={handleConnectWalletClick}
+              onDisconnectWallet={handleDisconnectWalletClick}
               setActiveTab={setActiveTab}
               hasActivePosition={!!userParticipant}
             />
@@ -458,8 +557,8 @@ export default function App() {
           {activeTab === 'DEPOSIT' && (
             <DepositTab
               systemStatus={systemStatus}
-              userWallet={userWallet}
-              setUserWallet={setUserWallet}
+              userWallet={activeUserWallet}
+              setUserWallet={handleSetUserWalletWrapper}
               treasuryWalletAddress={treasuryWalletAddress}
               onConfirmDeposit={handleUserConfirmDeposit}
               onSetStatusMessage={(msg) => console.log(msg)}
@@ -468,7 +567,7 @@ export default function App() {
 
           {activeTab === 'BALANCE' && (
             <MyBalanceTab
-              userWallet={userWallet}
+              userWallet={activeUserWallet}
               userParticipant={userParticipant || null}
               onWithdraw={() => handleUserConfirmWithdraw(userParticipant?.internalBalance || 0)}
               systemStatus={systemStatus}
@@ -479,7 +578,7 @@ export default function App() {
           {activeTab === 'QUEUE' && (
             <QueueTab
               participants={participants}
-              userWallet={userWallet}
+              userWallet={activeUserWallet}
               userParticipant={userParticipant || null}
               transactions={transactions}
             />
@@ -487,7 +586,7 @@ export default function App() {
 
           {activeTab === 'WITHDRAW' && (
             <WithdrawTab
-              userWallet={userWallet}
+              userWallet={activeUserWallet}
               userParticipant={userParticipant || null}
               onConfirmWithdraw={handleUserConfirmWithdraw}
               systemStatus={systemStatus}

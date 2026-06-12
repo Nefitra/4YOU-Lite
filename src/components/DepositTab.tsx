@@ -10,11 +10,12 @@ import {
   HelpCircle, RefreshCw, AlertCircle, Sparkles, LogIn
 } from 'lucide-react';
 import { SystemStatus } from '../types';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 
 interface DepositTabProps {
   systemStatus: SystemStatus;
-  userWallet: { address: string; ton: number; luckys: number; connected: boolean };
-  setUserWallet: React.Dispatch<React.SetStateAction<{ address: string; ton: number; luckys: number; connected: boolean }>>;
+  userWallet: { address: string; ton: number; luckys: number; connected: boolean; telegramId?: string };
+  setUserWallet: React.Dispatch<React.SetStateAction<{ address: string; ton: number; luckys: number; connected: boolean; telegramId?: string }>>;
   treasuryWalletAddress: string;
   onConfirmDeposit: (amount: number) => void;
   onSetStatusMessage: (msg: string | null) => void;
@@ -28,6 +29,9 @@ export default function DepositTab({
   onConfirmDeposit,
   onSetStatusMessage
 }: DepositTabProps) {
+  const [tonConnectUI] = useTonConnectUI();
+  const PRODUCTION_FRONTEND = true; // Match top-level setting to handle layouts cleanly
+
   const [txState, setTxState] = useState<'WAITING' | 'PROCESSING' | 'CONFIRMED' | 'FAILED'>('WAITING');
   const [simulatedTxHash, setSimulatedTxHash] = useState<string | null>(null);
   const [manualTxHash, setManualTxHash] = useState<string>(() => {
@@ -54,56 +58,99 @@ export default function DepositTab({
       return;
     }
 
-    if (userWallet.ton < 10) {
-      alert(`Insufficient funds. You need exactly 10 TON to join the queue. Your current wallet has ${userWallet.ton.toFixed(2)} TON.`);
-      return;
-    }
-
     // Begin network validation
     setTxState('PROCESSING');
 
-    try {
-      const response = await fetch('/api/deposit/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          txHash: manualTxHash,
-          userAddress: userWallet.address,
-          username: 'My_Ton_Wallet'
-        })
-      });
+    if (PRODUCTION_FRONTEND) {
+      try {
+        const txRequest = {
+          validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes deadline
+          messages: [
+            {
+              address: treasuryWalletAddress,
+              amount: "10000000000" // 10 TON in nanotons
+            }
+          ]
+        };
 
-      const resData = await response.json();
+        // Open user's chosen Tonkeeper wallet automatically
+        const result = await tonConnectUI.sendTransaction(txRequest);
+        
+        // Pass 'auto-detect' so server automatically scans for transaction values
+        const response = await fetch('/api/deposit/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            txHash: 'auto-detect',
+            userAddress: userWallet.address,
+            username: userWallet.telegramId ? `@Admin_Session` : 'My_Ton_Wallet',
+            telegramId: userWallet.telegramId
+          })
+        });
 
-      if (response.ok && resData.success) {
-        setUserWallet(prev => ({
-          ...prev,
-          ton: parseFloat((prev.ton - 10.0).toFixed(2)),
-          luckys: prev.luckys + 100
-        }));
+        const resData = await response.json();
 
-        setSimulatedTxHash(manualTxHash);
-        setTxState('CONFIRMED');
-        onConfirmDeposit(10.0);
-      } else {
-        setErrorMessage(resData.error || 'Failed to locate on-chain block. Ensure transfer is complete on mainnet.');
+        if (response.ok && resData.success) {
+          setSimulatedTxHash(resData.state?.transactions?.[0]?.txHash || 'auto-detected');
+          setTxState('CONFIRMED');
+          onConfirmDeposit(10.0);
+        } else {
+          setErrorMessage(resData.error || 'Failed to locate on-chain transfer. Ensure transaction was signed and broadcasted.');
+          setTxState('FAILED');
+        }
+      } catch (err: any) {
+        console.error('TON Connect live signing failed:', err);
+        setErrorMessage(err.message || 'Signature rejected by user or transaction timed out.');
         setTxState('FAILED');
       }
-    } catch (err) {
-      console.log('Using offline simulation fallback.');
-      setTimeout(() => {
-        setUserWallet(prev => ({
-          ...prev,
-          ton: parseFloat((prev.ton - 10.0).toFixed(2)),
-          luckys: prev.luckys + 100
-        }));
+    } else {
+      // Simulation mode fallback
+      try {
+        const response = await fetch('/api/deposit/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            txHash: manualTxHash,
+            userAddress: userWallet.address,
+            username: 'My_Ton_Wallet',
+            telegramId: userWallet.telegramId
+          })
+        });
 
-        setSimulatedTxHash(manualTxHash);
-        setTxState('CONFIRMED');
-        onConfirmDeposit(10.0);
-      }, 1500);
+        const resData = await response.json();
+
+        if (response.ok && resData.success) {
+          setUserWallet(prev => ({
+            ...prev,
+            ton: parseFloat((prev.ton - 10.0).toFixed(2)),
+            luckys: prev.luckys + 100
+          }));
+
+          setSimulatedTxHash(manualTxHash);
+          setTxState('CONFIRMED');
+          onConfirmDeposit(10.0);
+        } else {
+          setErrorMessage(resData.error || 'Failed to locate on-chain block. Ensure transfer is complete on mainnet.');
+          setTxState('FAILED');
+        }
+      } catch (err) {
+        console.log('Using offline simulation fallback.');
+        setTimeout(() => {
+          setUserWallet(prev => ({
+            ...prev,
+            ton: parseFloat((prev.ton - 10.0).toFixed(2)),
+            luckys: prev.luckys + 100
+          }));
+
+          setSimulatedTxHash(manualTxHash);
+          setTxState('CONFIRMED');
+          onConfirmDeposit(10.0);
+        }, 1500);
+      }
     }
   };
 
@@ -160,38 +207,40 @@ export default function DepositTab({
         </div>
 
         {/* Transaction Hash Input */}
-        <div className="space-y-2 bg-black/40 p-3.5 border border-white/5 rounded-2xl">
-          <label className="text-[10px] uppercase font-black text-slate-400 tracking-wider flex items-center justify-between">
-            <span>TON Transaction Hash</span>
-            <span className="text-[8px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded uppercase font-black tracking-wider">Required</span>
-          </label>
-          <div className="flex gap-1.5">
-            <input
-              type="text"
-              value={manualTxHash}
-              onChange={(e) => setManualTxHash(e.target.value)}
-              placeholder="0x..."
-              className="bg-[#05080e] text-slate-200 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono w-full focus:outline-none focus:border-blue-500"
-            />
-            <button
-              onClick={() => {
-                const chars = '0123456789abcdef';
-                let hash = '0x';
-                for (let i = 0; i < 64; i++) {
-                  hash += chars[Math.floor(Math.random() * chars.length)];
-                }
-                setManualTxHash(hash);
-              }}
-              className="p-2 bg-white/5 hover:bg-white/10 text-white border border-white/5 rounded-xl text-xs font-mono transition-all flex items-center justify-center cursor-pointer"
-              title="Generate fresh hash"
-            >
-              🔄
-            </button>
+        {!PRODUCTION_FRONTEND && (
+          <div className="space-y-2 bg-black/40 p-3.5 border border-white/5 rounded-2xl">
+            <label className="text-[10px] uppercase font-black text-slate-400 tracking-wider flex items-center justify-between">
+              <span>TON Transaction Hash</span>
+              <span className="text-[8px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded uppercase font-black tracking-wider">Required</span>
+            </label>
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={manualTxHash}
+                onChange={(e) => setManualTxHash(e.target.value)}
+                placeholder="0x..."
+                className="bg-[#05080e] text-slate-200 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono w-full focus:outline-none focus:border-blue-500"
+              />
+              <button
+                onClick={() => {
+                  const chars = '0123456789abcdef';
+                  let hash = '0x';
+                  for (let i = 0; i < 64; i++) {
+                    hash += chars[Math.floor(Math.random() * chars.length)];
+                  }
+                  setManualTxHash(hash);
+                }}
+                className="p-2 bg-white/5 hover:bg-white/10 text-white border border-white/5 rounded-xl text-xs font-mono transition-all flex items-center justify-center cursor-pointer"
+                title="Generate fresh hash"
+              >
+                🔄
+              </button>
+            </div>
+            <span className="text-[9px] text-slate-500 block leading-normal">
+              Transfer exactly 10 TON to the treasury address, paste your transaction hash here, then click verify below.
+            </span>
           </div>
-          <span className="text-[9px] text-slate-500 block leading-normal">
-            Transfer exactly 10 TON to the treasury address, paste your transaction hash here, then click verify below.
-          </span>
-        </div>
+        )}
 
         {/* Transaction state tracking block */}
         <div className="pt-2">

@@ -12,7 +12,7 @@ import {
 import { Participant, SystemStatus } from '../types';
 
 interface WithdrawTabProps {
-  userWallet: { address: string; ton: number; luckys: number; connected: boolean };
+  userWallet: { address: string; ton: number; luckys: number; connected: boolean; telegramId?: string };
   userParticipant: Participant | null;
   onConfirmWithdraw: (amount: number) => void;
   systemStatus: SystemStatus;
@@ -78,7 +78,7 @@ export default function WithdrawTab({
     setTxState('PROCESSING');
 
     try {
-      const response = await fetch('/api/withdraw', {
+       const response = await fetch('/api/withdraw', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -86,7 +86,8 @@ export default function WithdrawTab({
         body: JSON.stringify({
           username: userParticipant.username,
           walletAddress: userWallet.address,
-          amount: requestedAmount
+          amount: requestedAmount,
+          telegramId: userWallet.telegramId
         })
       });
 

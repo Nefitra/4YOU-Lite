@@ -119,6 +119,30 @@ export default function AdminTab({
         </button>
       </div>
 
+      {/* Internal Mainnet Test Mode Indicator */}
+      <div className="bg-[#0f1524] border border-blue-500/30 p-4 rounded-[20px] space-y-2 select-none">
+        <div className="flex justify-between items-center">
+          <span className="text-[9.5px] font-black uppercase tracking-wider text-blue-400 flex items-center gap-1.5 animate-pulse">
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full inline-block" />
+            ⚠️ Internal Mainnet Test Mode
+          </span>
+          <span className="text-[8.5px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/25 px-2 py-0.5 rounded">
+            TEST_MODE=true
+          </span>
+        </div>
+        <p className="text-[10.5px] text-slate-350 leading-relaxed font-sans">
+          This container is operating in a controlled pre-launch testing container (<code className="text-blue-300">PUBLIC_LAUNCH=false</code>). Real on-chain verification is active, but restricted strictly to registered Admin Telegram accounts. Mock inflow generation bypasses real mainnet verification parameters.
+        </p>
+        <div className="flex flex-wrap gap-2 text-[9px] font-mono select-none pt-1">
+          <span className="bg-white/5 border border-white/5 px-2 py-0.5 rounded text-white font-bold">
+            🔒 Admin IDs Restricted
+          </span>
+          <span className="bg-white/5 border border-white/5 px-2 py-0.5 rounded text-slate-300">
+            Deposits: 10 TON to Treasury Only
+          </span>
+        </div>
+      </div>
+
       {/* Primary Financial Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl">

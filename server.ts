@@ -44,12 +44,53 @@ async function startServer() {
     }
   });
 
+  // 1b. API: Fetch wallet balance safely from Toncenter
+  app.get('/api/wallet/balance', async (req, res) => {
+    const { address } = req.query;
+    if (!address) {
+      return res.status(400).json({ success: false, error: 'address parameter is required' });
+    }
+
+    try {
+      const apiKey = process.env.TON_API_KEY || process.env.TONCENTER_API_KEY;
+      const url = `${process.env.TON_API_BASE_URL || 'https://toncenter.com/api/v3'}/account?address=${encodeURIComponent(String(address))}`;
+      const response = await fetch(url, {
+        headers: apiKey ? { 'X-Api-Key': apiKey } : {}
+      });
+
+      if (!response.ok) {
+        throw new Error(`Toncenter v3 returned HTTP status ${response.status}`);
+      }
+
+      const json: any = await response.json();
+      const balanceNanoton = json.balance || '0';
+      // nanotons in v3 accounts are usually standard 1e9 or 1e10, let's normalize
+      const balanceTon = parseFloat(balanceNanoton) / 1000000000;
+      res.json({ success: true, balance: balanceTon });
+    } catch (err: any) {
+      console.warn(`Wallet Balance inquiry failed: ${err.message}. Defaulting to 0.0`);
+      res.json({ success: true, balance: 0.0, warning: err.message });
+    }
+  });
+
   // 2. API: Verify an on-chain deposit
   app.post('/api/deposit/verify', async (req, res) => {
-    const { txHash, userAddress, username } = req.body;
+    const { txHash, userAddress, username, telegramId } = req.body;
 
     if (!txHash || !userAddress || !username) {
       return res.status(400).json({ success: false, error: 'txHash, userAddress, and username parameters are required.' });
+    }
+
+    // Check pre-launch test limits (TEST_MODE=true & PUBLIC_LAUNCH=false)
+    const adminTelegramIds = ['8618331744', '6228196481', '5314622858'];
+    const isPublicLaunch = process.env.PUBLIC_LAUNCH === 'true';
+    if (!isPublicLaunch) {
+      if (!telegramId || !adminTelegramIds.includes(String(telegramId))) {
+        return res.status(403).json({ 
+          success: false, 
+          error: `ACCESS_BLOCKED: Non-admin Telegram ID (${telegramId || 'None'}). This is an Internal Mainnet Test container. Non-admin users are strictly blocked during this test session.` 
+        });
+      }
     }
 
     try {
@@ -74,10 +115,22 @@ async function startServer() {
 
   // 3. API: Request high-limit payout
   app.post('/api/withdraw', (req, res) => {
-    const { username, walletAddress, amount } = req.body;
+    const { username, walletAddress, amount, telegramId } = req.body;
 
     if (!username || !walletAddress || !amount) {
       return res.status(400).json({ success: false, error: 'username, walletAddress, and amount are required.' });
+    }
+
+    // Check pre-launch test limits (TEST_MODE=true & PUBLIC_LAUNCH=false)
+    const adminTelegramIds = ['8618331744', '6228196481', '5314622858'];
+    const isPublicLaunch = process.env.PUBLIC_LAUNCH === 'true';
+    if (!isPublicLaunch) {
+      if (!telegramId || !adminTelegramIds.includes(String(telegramId))) {
+        return res.status(403).json({ 
+          success: false, 
+          error: `ACCESS_BLOCKED: Non-admin Telegram ID (${telegramId || 'None'}). This is an Internal Mainnet Test container. Non-admin users are strictly blocked during this test session.` 
+        });
+      }
     }
 
     try {

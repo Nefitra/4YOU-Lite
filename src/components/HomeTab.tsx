@@ -13,7 +13,8 @@ import { SystemStatus } from '../types';
 
 interface HomeTabProps {
   systemStatus: SystemStatus;
-  userWallet: { address: string; ton: number; luckys: number; connected: boolean };
+  userWallet: { address: string; ton: number; luckys: number; connected: boolean; telegramId?: string };
+  setUserWallet?: React.Dispatch<React.SetStateAction<{ address: string; ton: number; luckys: number; connected: boolean; telegramId?: string }>>;
   onConnectWallet: () => void;
   onDisconnectWallet: () => void;
   setActiveTab: (tab: 'HOME' | 'DEPOSIT' | 'BALANCE' | 'QUEUE' | 'WITHDRAW' | 'ADMIN') => void;
@@ -23,6 +24,7 @@ interface HomeTabProps {
 export default function HomeTab({
   systemStatus,
   userWallet,
+  setUserWallet,
   onConnectWallet,
   onDisconnectWallet,
   setActiveTab,
@@ -81,23 +83,25 @@ export default function HomeTab({
         </div>
 
         {userWallet.connected ? (
-          <div className="bg-[#080b12] border border-white/10 p-4 rounded-xl flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-[10px] text-slate-500 font-mono block">Address</span>
-              <span className="text-white text-xs font-mono font-bold select-all">
-                {userWallet.address.slice(0, 8)}...{userWallet.address.slice(-8)}
-              </span>
-              <div className="text-[11px] font-bold text-blue-400 font-mono mt-1">
-                Asset: {userWallet.ton.toFixed(2)} TON
+          <div className="bg-[#080b12] border border-white/10 p-4 rounded-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-500 font-mono block">Address</span>
+                <span className="text-white text-xs font-mono font-bold select-all">
+                  {userWallet.address.slice(0, 8)}...{userWallet.address.slice(-8)}
+                </span>
+                <div className="text-[11px] font-bold text-blue-400 font-mono mt-1">
+                  Asset: {userWallet.ton.toFixed(2)} TON
+                </div>
               </div>
+              
+              <button
+                onClick={onDisconnectWallet}
+                className="text-[9px] font-bold text-rose-450 bg-rose-500/10 border border-rose-500/25 px-2.5 py-1.5 rounded-lg transition-all hover:bg-rose-500/20 active:scale-95 cursor-pointer self-start"
+              >
+                Disconnect
+              </button>
             </div>
-            
-            <button
-              onClick={onDisconnectWallet}
-              className="text-[9px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/25 px-2.5 py-1.5 rounded-lg transition-all hover:bg-rose-500/20 active:scale-95 cursor-pointer"
-            >
-              Disconnect
-            </button>
           </div>
         ) : (
           <button
