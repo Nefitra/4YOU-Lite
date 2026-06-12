@@ -36,9 +36,17 @@ export default function App() {
   });
 
   // State parameter settings (Section 8 database equivalence)
-  const [treasuryWalletAddress, setTreasuryWalletAddress] = useState('EQBv4YOUTreasuryMainPoolX98c76Z54y3r2w1q0pOl9b');
-  const [projectWalletAddress, setProjectWalletAddress] = useState('EQA6p8oZ_ProjectAdminFeeSupport9px9fGd7K9qM');
+  const [treasuryWalletAddress, setTreasuryWalletAddress] = useState('UQADu7pNPl90A0FKR-macOmwAE7UFdihWwMEtAxm8VPpJuCl');
+  const [projectWalletAddress, setProjectWalletAddress] = useState('UQAqb2Kvfzd1dIGaA7sOEB7M6rKZP6b-uVuLX7tABDD-kaam');
   const [systemStatus, setSystemStatus] = useState<SystemStatus>(SystemStatus.ACTIVE);
+
+  // New production launch variables loaded from user deployment sheet
+  const botUsername = '@YOU_Game_Lite_bot';
+  const botToken = '8858564960:AAEwoUU5oXi_KQLHt6N5Sx5OP1KA6WaD_2o';
+  const adminTelegramIds = ['8618331744', '6228196481', '5314622858'];
+  const withdrawalSignerAddress = 'UQB4l2OcvXTiYJbo9C9B-Zed6cENVptYZxmcyY1qgBH5M-0K';
+  const withdrawalLimit = 5.0;
+  const autoWithdrawalsEnabled = true;
 
   // Financial central database totals
   const [treasuryBalance, setTreasuryBalance] = useState<number>(73.5); // base pool starts on 73.5 TON
@@ -93,6 +101,30 @@ export default function App() {
     };
     updateTime();
     const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Synchronize state periodically with backend ledger server
+  useEffect(() => {
+    const fetchState = async () => {
+      try {
+        const res = await fetch('/api/state');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setParticipants(data.participants);
+            setTransactions(data.transactions);
+            setSystemStatus(data.systemStatus);
+            setTreasuryBalance(data.treasuryBalance);
+            setProjectBalance(data.projectBalance);
+          }
+        }
+      } catch (err) {
+        console.log('Independent Client Session: Running in offline local sandbox simulator.');
+      }
+    };
+    fetchState();
+    const interval = setInterval(fetchState, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -261,8 +293,14 @@ export default function App() {
 
   const isUserBlocked = userParticipant?.status === ParticipantStatus.BLOCKED;
 
-  const handleResetSimulation = () => {
+  const handleResetSimulation = async () => {
     if (window.confirm('Are you sure you want to reset the entire Queue simulation back to initial seed data?')) {
+      try {
+        await fetch('/api/admin/reset', { method: 'POST' });
+      } catch (err) {
+        console.log('Database reset on-device fallback active: ', err);
+      }
+
       const origs = generateInitialParticipants();
       setParticipants(origs);
       setTreasuryBalance(73.5);
@@ -276,6 +314,45 @@ export default function App() {
         connected: true
       });
       setActiveTab('HOME');
+    }
+  };
+
+  const handleUpdateSystemStatus = async (newStatus: SystemStatus) => {
+    setSystemStatus(newStatus);
+    try {
+      await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ systemStatus: newStatus })
+      });
+    } catch (err) {
+      console.log('Independent node, status update offline: ', err);
+    }
+  };
+
+  const handleUpdateTreasuryAddress = async (addr: string) => {
+    setTreasuryWalletAddress(addr);
+    try {
+      await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ treasuryAddress: addr })
+      });
+    } catch (err) {
+      console.log('Independent node, address update offline: ', err);
+    }
+  };
+
+  const handleUpdateProjectAddress = async (addr: string) => {
+    setProjectWalletAddress(addr);
+    try {
+      await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectAddress: addr })
+      });
+    } catch (err) {
+      console.log('Independent node, address update offline: ', err);
     }
   };
 
@@ -437,17 +514,23 @@ export default function App() {
               transactions={transactions}
               participants={participants}
               systemStatus={systemStatus}
-              setSystemStatus={setSystemStatus}
+              setSystemStatus={handleUpdateSystemStatus}
               treasuryWalletAddress={treasuryWalletAddress}
-              setTreasuryWalletAddress={setTreasuryWalletAddress}
+              setTreasuryWalletAddress={handleUpdateTreasuryAddress}
               projectWalletAddress={projectWalletAddress}
-              setProjectWalletAddress={setProjectWalletAddress}
+              setProjectWalletAddress={handleUpdateProjectAddress}
               onBlockUser={handleBlockUser}
               userIsBlocked={isUserBlocked}
               onResetSimulation={handleResetSimulation}
               onRetryFailedWithdrawals={handleRetryFailedWithdrawals}
               autoSimulate={autoSimulate}
               setAutoSimulate={setAutoSimulate}
+              botUsername={botUsername}
+              botToken={botToken}
+              adminTelegramIds={adminTelegramIds}
+              withdrawalSignerAddress={withdrawalSignerAddress}
+              withdrawalLimit={withdrawalLimit}
+              autoWithdrawalsEnabled={autoWithdrawalsEnabled}
             />
           )}
         </div>

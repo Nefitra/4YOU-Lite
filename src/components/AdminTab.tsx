@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { 
   Sliders, ShieldCheck, RefreshCw, Cpu, Edit, Check,
-  AlertCircle, ShieldAlert, Play, Pause, Trash2, ListCollapse, Terminal
+  AlertCircle, ShieldAlert, Play, Pause, Trash2, ListCollapse, Terminal, Bot, Key, Lock
 } from 'lucide-react';
 import { SystemStatus, Transaction, Participant, ParticipantStatus } from '../types';
 
@@ -28,6 +28,12 @@ interface AdminTabProps {
   onRetryFailedWithdrawals: () => void;
   autoSimulate: boolean;
   setAutoSimulate: (val: boolean) => void;
+  botUsername?: string;
+  botToken?: string;
+  adminTelegramIds?: string[];
+  withdrawalSignerAddress?: string;
+  withdrawalLimit?: number;
+  autoWithdrawalsEnabled?: boolean;
 }
 
 export default function AdminTab({
@@ -46,7 +52,13 @@ export default function AdminTab({
   onResetSimulation,
   onRetryFailedWithdrawals,
   autoSimulate,
-  setAutoSimulate
+  setAutoSimulate,
+  botUsername = '@YOU_Game_Lite_bot',
+  botToken = '',
+  adminTelegramIds = [],
+  withdrawalSignerAddress = '',
+  withdrawalLimit = 5.0,
+  autoWithdrawalsEnabled = true
 }: AdminTabProps) {
   const [editingTreasury, setEditingTreasury] = useState(false);
   const [treasuryInput, setTreasuryInput] = useState(treasuryWalletAddress);
@@ -150,6 +162,79 @@ export default function AdminTab({
               <strong className="text-xs font-bold text-emerald-400 font-mono block mt-0.5">
                 +{totalRewardsGiven.toFixed(1)} TON
               </strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bot & Signer Live Production Manifest */}
+      <div className="bg-gradient-to-br from-indigo-950/20 via-blue-950/10 to-transparent border border-blue-500/20 p-5 rounded-[24px] space-y-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <span className="text-[8px] bg-blue-500/10 text-blue-400 border border-blue-500/25 px-1.5 py-0.5 rounded font-black tracking-widest uppercase mb-1 inline-block">
+              PRODUCTION LIVE MANIFEST
+            </span>
+            <h4 className="text-xs font-black text-white uppercase flex items-center gap-1.5">
+              <Bot className="w-4 h-4 text-blue-400" />
+              Telegram Bot & Payout settings
+            </h4>
+          </div>
+          <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Config Ready
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 text-xs">
+          {/* Bot details */}
+          <div className="bg-black/40 border border-white/5 p-3 rounded-xl space-y-2">
+            <div className="flex justify-between items-center pb-1.5 border-b border-white/5">
+              <span className="text-slate-400 font-bold flex items-center gap-1">
+                <Bot className="w-3.5 h-3.5 text-blue-400" /> Username
+              </span>
+              <span className="text-blue-400 font-mono font-bold select-all">{botUsername}</span>
+            </div>
+
+            <div className="flex justify-between items-center pb-1.5 border-b border-white/5">
+              <span className="text-slate-400 font-bold flex items-center gap-1">
+                <Key className="w-3.5 h-3.5 text-slate-500" /> Bot Token
+              </span>
+              <span className="text-slate-300 font-mono text-[10px] select-all truncate max-w-[180px]" title={botToken}>
+                {botToken ? `${botToken.slice(0, 15)}...${botToken.slice(-8)}` : 'None Provided'}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-slate-400 font-bold">Admin Telegram IDs:</span>
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {adminTelegramIds.map(id => (
+                  <span key={id} className="text-[9.5px] px-2 py-0.5 bg-white/5 border border-white/5 rounded font-mono font-bold text-slate-300 select-all">
+                    {id}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Autowithdraw & Signer */}
+          <div className="bg-black/40 border border-white/5 p-3 rounded-xl space-y-2">
+            <div className="flex justify-between items-center pb-1.5 border-b border-white/5">
+              <span className="text-slate-400 font-bold">Withdrawal Gatekeeper</span>
+              <span className="text-xs font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/5 px-2 py-0.5 border border-emerald-500/25 rounded">
+                Auto withdrawals
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center pb-1.5 border-b border-white/5">
+              <span className="text-slate-400 font-bold">Per-Tx Limit</span>
+              <span className="text-slate-205 font-bold font-mono">{withdrawalLimit} TON Max</span>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-slate-400 text-[10.5px] font-bold block">Withdrawal Signer Public Key / Account:</span>
+              <div className="p-2 bg-white/[0.01] border border-white/5 rounded-lg text-[9.5px] font-mono text-slate-400 break-all select-all leading-tight">
+                {withdrawalSignerAddress}
+              </div>
             </div>
           </div>
         </div>
