@@ -376,29 +376,17 @@ export default function App() {
   }, [autoSimulate, systemStatus, simulationSpeed, participants.length]);
 
   return (
-    <div id="app-workspace" className="min-h-screen bg-[#04060a] text-slate-200 flex flex-col justify-center items-center font-sans py-6 px-4 relative overflow-hidden select-none">
+    <div id="app-workspace" className="min-h-screen bg-[#04060a] text-slate-200 flex flex-col font-sans relative overflow-x-hidden select-none pb-28">
       
       {/* Immersive glow effects */}
-      <div className="absolute top-[-15%] left-[-15%] w-[450px] h-[450px] bg-blue-600/10 rounded-full blur-[110px] pointer-events-none" />
-      <div className="absolute bottom-[-15%] right-[-15%] w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-[450px] h-[450px] bg-blue-600/10 rounded-full blur-[110px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[130px] pointer-events-none" />
 
-      {/* Main glass card wrapper layout */}
-      <div className="w-full max-w-md bg-[#0a0d14]/80 backdrop-blur-2xl rounded-[38px] border border-white/10 p-3 shadow-[0_20px_50px_rgba(59,130,246,0.12)] relative z-10 overflow-hidden flex flex-col min-h-[685px]">
+      {/* Main responsive container wrapper without phone framing */}
+      <div className="w-full max-w-md mx-auto px-4 py-4 flex flex-col flex-1 relative z-10">
         
-        {/* iOS bar */}
-        <div id="ios-status-bar" className="px-5 pt-2 pb-1.5 flex justify-between items-center text-[10px] text-slate-500 font-mono select-none">
-          <span className="font-bold">{currentTime}</span>
-          <div className="px-3 py-0.5 bg-white/5 border border-white/5 rounded-full text-[8.5px] font-black text-slate-400 tracking-widest font-sans">
-            4YOU LITE TMA
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Wifi className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
-            <Battery className="w-3.5 h-3.5 text-emerald-400" />
-          </div>
-        </div>
-
         {/* Telegram App Nav Header */}
-        <div id="applet-nav-header" className="px-4 py-3 flex justify-between items-center bg-white/[0.02] border border-white/5 rounded-2xl mx-1 select-none">
+        <div id="applet-nav-header" className="px-4 py-3 flex justify-between items-center bg-white/[0.02] border border-white/5 rounded-2xl select-none">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.4)]">
               <span className="text-base font-black text-white">4Y</span>
@@ -455,7 +443,7 @@ export default function App() {
         </div>
 
         {/* Viewport viewport */}
-        <div id="tma-screens-viewport" className="px-1.5 pt-4 pb-20 min-h-[480px] max-h-[520px] overflow-y-auto mt-2 scrollbar-none flex-1">
+        <div id="tma-screens-viewport" className="px-1 pt-4 pb-12 overflow-y-auto mt-2 scrollbar-none flex-1">
           {activeTab === 'HOME' && (
             <HomeTab
               systemStatus={systemStatus}
@@ -535,89 +523,94 @@ export default function App() {
           )}
         </div>
 
-        {/* Global Bottom Tab Bar Panel */}
-        <div id="bottom-pax-rail" className="absolute bottom-2.5 inset-x-3 bg-[#080a10]/95 backdrop-blur-lg rounded-[24px] border border-white/10 p-1.5 flex justify-between gap-1 z-30 shadow-2xl">
-          <button
-            onClick={() => setActiveTab('HOME')}
-            className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all ${
-              activeTab === 'HOME'
-                ? 'bg-blue-650/15 text-blue-400 font-bold border border-blue-500/10 shadow-md'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Home className="w-4 h-4 mb-0.5" />
-            <span className="text-[8.5px] font-black uppercase tracking-tight">Home</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('DEPOSIT')}
-            className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all ${
-              activeTab === 'DEPOSIT'
-                ? 'bg-blue-650/15 text-blue-400 font-bold border border-blue-500/10 shadow-md'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <ArrowUpRight className="w-4 h-4 mb-0.5" />
-            <span className="text-[8.5px] font-black uppercase tracking-tight">Deposit</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('BALANCE')}
-            className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all ${
-              activeTab === 'BALANCE'
-                ? 'bg-blue-650/15 text-blue-400 font-bold border border-blue-500/10 shadow-md'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Coins className="w-4 h-4 mb-0.5" />
-            <span className="text-[8.5px] font-black uppercase tracking-tight">Balance</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('QUEUE')}
-            className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all ${
-              activeTab === 'QUEUE'
-                ? 'bg-blue-650/15 text-blue-400 font-bold border border-blue-500/10 shadow-md'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Award className="w-4 h-4 mb-0.5" />
-            <span className="text-[8.5px] font-black uppercase tracking-tight">Queue</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('WITHDRAW')}
-            className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all ${
-              activeTab === 'WITHDRAW'
-                ? 'bg-blue-650/15 text-blue-400 font-bold border border-blue-500/10 shadow-md'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <ArrowDownLeft className="w-4 h-4 mb-0.5" />
-            <span className="text-[8.5px] font-black uppercase tracking-tight">Claim</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('ADMIN')}
-            className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all ${
-              activeTab === 'ADMIN'
-                ? 'bg-blue-650/15 text-blue-400 font-bold border border-blue-500/10 shadow-md'
-                : 'text-slate-450 hover:text-slate-200'
-            }`}
-          >
-            <Sliders className="w-4 h-4 mb-0.5" />
-            <span className="text-[8.5px] font-black uppercase tracking-tight">Admin</span>
-          </button>
-        </div>
       </div>
 
-      <div className="text-center mt-5 text-[10.5px] text-slate-500 max-w-sm space-y-1 relative z-10 pointer-events-none select-none">
-        <p className="flex items-center justify-center gap-1.5 text-slate-500 font-black uppercase tracking-[0.2em] text-[9px]">
-          <Cpu className="w-3.5 h-3.5 text-blue-500" />
-          <span>4YOU GameFi Sandbox System</span>
-        </p>
-        <p className="leading-relaxed text-slate-400 font-sans">
-          This system is optimized for Telegram Mini App contexts. Simulated values map onto standard TON blockchain off-chain transaction databases.
+      {/* Global Bottom Tab Bar Panel - Fixed floating beautifully centered navigation inside safe zone */}
+      <div id="bottom-pax-rail" className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm bg-[#080a10]/95 backdrop-blur-lg rounded-2xl border border-white/10 p-1.5 flex justify-between gap-1 z-30 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <button
+          onClick={() => setActiveTab('HOME')}
+          id="btn-tab-home"
+          className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            activeTab === 'HOME'
+              ? 'bg-blue-500/10 text-blue-400 font-bold border border-blue-500/10 shadow-md'
+              : 'text-slate-450 hover:text-slate-200'
+          }`}
+        >
+          <Home className="w-4 h-4 mb-0.5" />
+          <span className="text-[8.5px] font-black uppercase tracking-tight">Home</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('DEPOSIT')}
+          id="btn-tab-deposit"
+          className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            activeTab === 'DEPOSIT'
+              ? 'bg-blue-500/10 text-blue-400 font-bold border border-blue-500/10 shadow-md'
+              : 'text-slate-450 hover:text-slate-200'
+          }`}
+        >
+          <ArrowUpRight className="w-4 h-4 mb-0.5" />
+          <span className="text-[8.5px] font-black uppercase tracking-tight">Deposit</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('BALANCE')}
+          id="btn-tab-balance"
+          className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            activeTab === 'BALANCE'
+              ? 'bg-blue-500/10 text-blue-400 font-bold border border-blue-500/10 shadow-md'
+              : 'text-slate-450 hover:text-slate-200'
+          }`}
+        >
+          <Coins className="w-4 h-4 mb-0.5" />
+          <span className="text-[8.5px] font-black uppercase tracking-tight">Balance</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('QUEUE')}
+          id="btn-tab-queue"
+          className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            activeTab === 'QUEUE'
+              ? 'bg-blue-500/10 text-blue-400 font-bold border border-blue-500/10 shadow-md'
+              : 'text-slate-450 hover:text-slate-200'
+          }`}
+        >
+          <Award className="w-4 h-4 mb-0.5" />
+          <span className="text-[8.5px] font-black uppercase tracking-tight">Queue</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('WITHDRAW')}
+          id="btn-tab-withdraw"
+          className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            activeTab === 'WITHDRAW'
+              ? 'bg-blue-500/10 text-blue-400 font-bold border border-blue-500/10 shadow-md'
+              : 'text-slate-450 hover:text-slate-200'
+          }`}
+        >
+          <ArrowDownLeft className="w-4 h-4 mb-0.5" />
+          <span className="text-[8.5px] font-black uppercase tracking-tight">Claim</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ADMIN')}
+          id="btn-tab-admin"
+          className={`flex-1 py-2 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+            activeTab === 'ADMIN'
+              ? 'bg-blue-500/10 text-blue-400 font-bold border border-blue-500/10 shadow-md'
+              : 'text-slate-450 hover:text-slate-200'
+          }`}
+        >
+          <Sliders className="w-4 h-4 mb-0.5" />
+          <span className="text-[8.5px] font-black uppercase tracking-tight">Admin</span>
+        </button>
+      </div>
+
+      {/* Subtle brand attribution at bottom boundary */}
+      <div className="text-center pb-24 pt-4 text-[10px] text-slate-500 max-w-xs mx-auto space-y-1 relative z-10 pointer-events-none select-none">
+        <p className="flex items-center justify-center gap-1.5 text-slate-500 font-black uppercase tracking-[0.2em] text-[8px]">
+          <Cpu className="w-3 h-3 text-blue-500" />
+          <span>4YOU GameFi Infrastructure</span>
         </p>
       </div>
     </div>

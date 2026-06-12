@@ -53,8 +53,14 @@ async function startServer() {
     }
 
     try {
-      const apiKey = process.env.TON_API_KEY || 'a88e8289de44544087b3701067bd8eb2f610eaabd75c3c526ac13fd0092ccc42';
-      const verification = await db.verifyOnChainDeposit(txHash, userAddress, username, apiKey);
+      const apiKey = process.env.TON_API_KEY || process.env.TONCENTER_API_KEY;
+      const isDryRun = process.env.MAINNET_DRY_RUN === 'true';
+
+      if (!isDryRun && !apiKey) {
+        return res.status(400).json({ success: false, error: 'CONFIG_ERROR_MISSING_TON_API_KEY' });
+      }
+
+      const verification = await db.verifyOnChainDeposit(txHash, userAddress, username, apiKey || '');
       
       if (verification.success) {
         res.json({ success: true, message: verification.message, state: db.getState() });
@@ -135,6 +141,18 @@ async function startServer() {
     res.json({ success: true, message: 'Webhook event received successfully but contained no message body.' });
   });
 
+  // 7. API: Serve fallback high-contrast branding logo
+  app.get('/logo.png', (req, res) => {
+    // 64x64 blue & white circular visual logo
+    const base64Png = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5gYMDQYwLy8vLwAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLm0EAAAAbUlEQVRo3u3asQ0AIAwEsYf9d3YGFmDpHHIn96pS6vN9971D4gYgQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEDgscAAsbMD9zIK5fIAAAAASUVORK5CYII=';
+    const imgBuf = Buffer.from(base64Png, 'base64');
+    res.writeHead(200, {
+      'Content-Type': 'image/png',
+      'Content-Length': imgBuf.length
+    });
+    res.end(imgBuf);
+  });
+
   // Integrates Vite Middleware in development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -152,6 +170,24 @@ async function startServer() {
 
   app.listen(port, '0.0.0.0', () => {
     console.log(`4YOU Lite full-stack system listening on port ${port} in ${process.env.NODE_ENV || 'development'} mode.`);
+
+    // Self-register webhook in production or configured modes
+    const botToken = process.env.BOT_TOKEN;
+    const appPublicUrl = process.env.APP_PUBLIC_URL;
+    if (botToken && appPublicUrl) {
+      const webhookUrl = `${appPublicUrl}/api/bot-updates`;
+      console.log(`[TELEGRAM STARTUP HUB] Attempting auto-registration of bot webhook to: ${webhookUrl}`);
+      fetch(`https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`)
+        .then(res => res.json())
+        .then((data: any) => {
+          console.log('[TELEGRAM STARTUP HUB] Webhook status response:', JSON.stringify(data));
+        })
+        .catch(err => {
+          console.error('[TELEGRAM STARTUP HUB] Auto-registration failed:', err.message);
+        });
+    } else {
+      console.log('[TELEGRAM STARTUP HUB] Webhook registration skipped: BOT_TOKEN or APP_PUBLIC_URL is empty in environment.');
+    }
   });
 }
 

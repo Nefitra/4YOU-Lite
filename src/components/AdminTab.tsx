@@ -204,6 +204,26 @@ export default function AdminTab({
               </span>
             </div>
 
+            <div className="flex flex-col gap-1 pb-1.5 border-b border-white/5">
+              <span className="text-slate-400 font-bold flex items-center gap-1">
+                🌐 Telegram Webhook Endpoint
+              </span>
+              <div className="bg-[#05080e] p-2 border border-white/5 rounded-lg text-[9px] font-mono text-slate-350 leading-normal break-all select-all">
+                https://service-4you-ton-queue-game-52536426129.europe-west2.run.app/api/bot-updates
+              </div>
+              <span className="text-[9px] text-slate-500 leading-normal block">
+                ⚡ Auto-registered on backend boot. To trigger/test manually visit:
+                <a 
+                  href={`https://api.telegram.org/bot${botToken || '8858564960:AAEwoUU5oXi_KQLHt6N5Sx5OP1KA6WaD_2o'}/setWebhook?url=https://service-4you-ton-queue-game-52536426129.europe-west2.run.app/api/bot-updates`}
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="text-blue-400 hover:underline block font-mono mt-0.5 mt-0.5 text-[8.5px] truncate max-w-xs"
+                >
+                  https://api.telegram.org/bot{botToken ? `${botToken.slice(0, 10)}...` : '8858564960:AA...'}...
+                </a>
+              </span>
+            </div>
+
             <div className="flex flex-col gap-1">
               <span className="text-slate-400 font-bold">Admin Telegram IDs:</span>
               <div className="flex flex-wrap gap-1 mt-0.5">

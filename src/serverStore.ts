@@ -214,7 +214,7 @@ export class DbStore {
       const response = await fetch(url, {
         headers: {
           'accept': 'application/json',
-          'X-Api-Key': apiKey || process.env.TON_API_KEY || ''
+          'X-Api-Key': apiKey || process.env.TON_API_KEY || process.env.TONCENTER_API_KEY || ''
         }
       });
 
